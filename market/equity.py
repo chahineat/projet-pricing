@@ -35,9 +35,17 @@ class EquityMarketData(MarketDataSource):
 
     @property
     def history(self) -> pd.DataFrame:
+        """
+        Historique des prix (DataFrame yfinance).
+        Si mode = SNAPSHOT mais le fichier n'existe pas, on tombe sur LIVE.
+        """
         if self._history is None:
             if self.config.mode == DataMode.SNAPSHOT:
-                self.load_snapshot()
+                try:
+                    self.load_snapshot()
+                except FileNotFoundError:
+                    # fallback automatique vers yfinance
+                    self._download_history()
             else:
                 self._download_history()
         return self._history

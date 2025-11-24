@@ -13,7 +13,6 @@ from .paths import options_snapshot_path
 @dataclass
 class OptionChainConfig:
     ticker: str
-    # éventuellement filtrer sur un subset de maturités
     max_maturities: Optional[int] = None
 
 
@@ -36,7 +35,10 @@ class OptionChainMarketData(MarketDataSource):
     def maturities(self) -> List[str]:
         if not self._chains:
             if self.config.mode == DataMode.SNAPSHOT:
-                self.load_snapshot()
+                try:
+                    self.load_snapshot()
+                except FileNotFoundError:
+                    self._download_all_chains()
             else:
                 self._download_all_chains()
         return list(self._chains.keys())
@@ -44,7 +46,10 @@ class OptionChainMarketData(MarketDataSource):
     def get_chain(self, maturity: str) -> (pd.DataFrame, pd.DataFrame):
         if not self._chains:
             if self.config.mode == DataMode.SNAPSHOT:
-                self.load_snapshot()
+                try:
+                    self.load_snapshot()
+                except FileNotFoundError:
+                    self._download_all_chains()
             else:
                 self._download_all_chains()
         data = self._chains.get(maturity)
@@ -52,7 +57,6 @@ class OptionChainMarketData(MarketDataSource):
             raise ValueError(f"Maturité {maturity} non trouvée")
         return data["calls"], data["puts"]
 
-    # --------- Téléchargement ---------
 
     def _download_all_chains(self) -> None:
         t = yf.Ticker(self.ticker)
@@ -72,13 +76,10 @@ class OptionChainMarketData(MarketDataSource):
 
         self._chains = chains
 
-    # --------- Snapshot I/O ---------
-
     def save_snapshot(self) -> None:
         if not self._chains:
             self._download_all_chains()
         path = options_snapshot_path(self.config.data_dir, self.ticker, self.valuation_date)
-        # on stocke sous forme "long" pour parquet
         rows = []
         for mat, data in self._chains.items():
             for typ in ("calls", "puts"):
@@ -98,8 +99,6 @@ class OptionChainMarketData(MarketDataSource):
             puts = grp[grp["type"] == "puts"].drop(columns=["maturity", "type"])
             chains[mat] = {"calls": calls, "puts": puts}
         self._chains = chains
-
-    # --------- Outils smile ---------
 
     def smile_for_maturity(self, maturity: str) -> pd.DataFrame:
         calls, _ = self.get_chain(maturity)
