@@ -13,7 +13,7 @@ def get_default_config() -> MarketConfig:
     today = dt.date.today()
     return MarketConfig(
         valuation_date=today,
-        mode=DataMode.SNAPSHOT,  # tu pourras passer en LIVE si besoin
+        mode=DataMode.LIVE,
         currency="USD",
         data_dir="data",
     )

@@ -45,10 +45,17 @@ class EquityMarketData(MarketDataSource):
     @property
     def spot(self) -> float:
         """
-        Spot = dernier prix (Adjusted Close ou Close).
+        Spot = dernier prix de clôture.
+        On essaie d'abord 'Adj Close', sinon 'Close', sinon la dernière colonne.
         """
-        col = "Adj Close" if self.eq_config.use_adjusted_close else "Close"
-        return float(self.history[col].iloc[-1])
+        hist = self.history
+
+        for col in ["Adj Close", "Close", "close"]:
+            if col in hist.columns:
+                return float(hist[col].iloc[-1])
+
+        # fallback de secours : dernière colonne de la dernière ligne
+        return float(hist.iloc[-1, -1])
 
     # --------- Méthodes internes ---------
 
