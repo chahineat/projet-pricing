@@ -4,25 +4,25 @@ import os
 
 ticker = yf.Ticker("AAPL")  # Apple (US)
 
-print(ticker.options)        # Devrait afficher une liste de dates d'expiration
+# Liste des expirations (ex : les 5 premières)
+expirations = ticker.options[:5]
+print("Expirations disponibles :", expirations)
 
-# Choisir la première date d'expiration
-expiration = '2025-11-28'
-
-# Récupérer les options Call et Put
-options = ticker.option_chain(expiration)
-calls = options.calls
-puts = options.puts
-
-# Créer un dossier data pour sauvegarder les fichiers
+# Créer dossier data
 os.makedirs("data", exist_ok=True)
 
-# Sauvegarder en CSV
-calls.to_csv("data/calls.csv", index=False)
-puts.to_csv("data/puts.csv", index=False)
+# Boucle sur les expirations
+for exp in expirations:
+    options = ticker.option_chain(exp)
+    calls = options.calls
+    puts = options.puts
 
-print("Fichiers CSV générés dans le dossier 'data'.")
+    # Sauvegarde CSV pour chaque expiration
+    calls.to_csv(f"data/calls_{exp}.csv", index=False)
+    puts.to_csv(f"data/puts_{exp}.csv", index=False)
 
-# Afficher les premières lignes
+    print(f"Fichiers CSV pour {exp} générés.")
+
+# Affichage exemple pour la première expiration
 print(calls.head())
 print(puts.head())
